@@ -74,11 +74,24 @@
          * onchange/onblur events for submitting
          */
         elems.each(function(i) {
-            eventName = $(this).is('button,:submit') ? 'click' : 'change';
-            $(this).bind(eventName, function (e) {
-                eventName == 'click' ? e.preventDefault() : false;
-                $.fn.autosave._makeRequest(e, nodes, options, this);
-            });
+            if( $(this).is('textarea') ) {
+              $(this).bind('focus', function (e) {
+                var textarea = $(this);
+                $(this).data('autosave.timer', window.setInterval( function() {
+                    $.fn.autosave._makeRequest(e, nodes, options, textarea);
+                  }, 2000 ) );
+              });
+              $(this).bind('blur', function (e) {
+                window.clearInterval( $(this).data('autosave.timer') );
+              });
+            }
+            else {
+              eventName = $(this).is('button,:submit') ? 'click' : 'change';
+              $(this).bind(eventName, function (e) {
+                  eventName == 'click' ? e.preventDefault() : false;
+                  $.fn.autosave._makeRequest(e, nodes, options, this);
+              });
+            }
         });
         return $(this);
     }
