@@ -46,6 +46,9 @@
 
         options = $.extend({
             grouped: false,
+            textareaSaveInterval: 2000, // Time interval to save textareas
+            textareaAlwaysSave: false, // Whether to always save, even if no input since last save
+            overrideSubmit: true, // Bind to form submit button
             send: false, // Callback
             error: false, // Callback
             success: false, // Callback
@@ -62,10 +65,12 @@
             options.grouped = true;
             elems = nodes = $(this).find(":input,button");
             // Bind to forms submit
-            $(this).bind('submit', function(e) {
-                e.preventDefault();
-                $.fn.autosave._makeRequest(e, nodes, options, $(this));
-            });
+            if( options.overrideSubmit ) {
+              $(this).bind('submit', function(e) {
+                  e.preventDefault();
+                  $.fn.autosave._makeRequest(e, nodes, options, $(this));
+              });
+            }
         }
         /**
          * For each element selected (typically a list of form elements
@@ -78,15 +83,21 @@
               $(this).bind('focus', function (e) {
                 var textarea = $(this);
                 $(this).data('autosave.timer', window.setInterval( function() {
-                    $.fn.autosave._makeRequest(e, nodes, options, textarea);
-                  }, 2000 ) );
+                    if (options.textareaAlwaysSave || textarea.data('autosave.keypressed')) {
+                      $.fn.autosave._makeRequest(e, nodes, options, textarea);
+                      textarea.data('autosave.keypressed', false);
+                    }
+                  }, options.textareaSaveInterval ) );
               });
               $(this).bind('blur', function (e) {
                 window.clearInterval( $(this).data('autosave.timer') );
               });
+              $(this).bind('keypress', function (e) {
+                $(this).data('autosave.keypressed', true);
+              });
             }
             else {
-              eventName = $(this).is('button,:submit') ? 'click' : 'change';
+              eventName = $(this).is('button' + (options.overrideSubmit ? ',:submit':'')) ? 'click' : 'change';
               $(this).bind(eventName, function (e) {
                   eventName == 'click' ? e.preventDefault() : false;
                   $.fn.autosave._makeRequest(e, nodes, options, this);
